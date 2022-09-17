@@ -5,6 +5,7 @@ import os
 import st7789 as st7789
 import zlib
 import gc
+import time
 
 class PicoPin:
     root = const('/anim/')
@@ -178,6 +179,11 @@ class PicoPin:
                 continue
             with open(ll_path, 'w') as lfile:
                 lfile.write(anim)
+            if 'speed' in os.listdir(anim):
+                with open(anim + '/speed') as speedfile:
+                    speed = int(speedfile.read())
+            else:
+                speed = 0
             frame = 0
             max_frame = len(self.anim_files) - 1
             while True:
@@ -196,9 +202,13 @@ class PicoPin:
                 else:
                     #blit_file(anim_files[frame], buffer, display)
 
+                    if speed:
+                        self.ticks = time.ticks_ms()
                     with open(self.anim_files[frame], 'rb') as file:
                         file.readinto(self.buffer)
                     self.display.blit_buffer(self.buffer, 0, 0, self.buffer_width, self.buffer_height)
+                    if speed:
+                        time.sleep_ms(speed - time.ticks_diff(time.ticks_ms(), self.ticks))
 
                     frame += 1
                     if frame > max_frame:

@@ -46,6 +46,9 @@ class ConvImage:
                 data = fin.read()
                 compressed_data = zlib.compress(data, zlib.Z_BEST_COMPRESSION)
                 fout.write(compressed_data)
+        with open(f'{os.path.split(output_prefix)[0] or "."}/speed', 'w') as speedfile:
+            if 'duration' in self.img.info:
+                speedfile.write(str(self.img.info['duration']))
 
 if __name__=="__main__":
     ConvImage(sys.argv[1]).convert(sys.argv[2])
