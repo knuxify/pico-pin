@@ -56,18 +56,26 @@ class PicoPin:
             elif filename.endswith('.bin'):
                 files_bin.append(filename)
 
+        if len(files_zl) != len(files_bin):
+            for _file in files_bin:
+                os.remove(_file)
+                files_bin = []
+
         for filename in files_zl:
             file_out = filename.replace('.zl', '.bin')
             if file_out not in files_bin:
                 file_out = filename.replace('.zl', '.bin')
                 #decompress_file(filename, file_out, buffer)
 
-                with open(filename, 'rb') as infile:
-                    zlib.DecompIO(infile).readinto(memoryview(self.buffer))
-                del infile
-                with open(file_out, 'wb') as outfile:
-                    outfile.write(memoryview(self.buffer))
-                del outfile
+                if self.prev_button.value() == 0 or self.next_button.value() == 0 and len(files_bin) > 1:
+                    break
+                else:
+                    with open(filename, 'rb') as infile:
+                        zlib.DecompIO(infile).readinto(memoryview(self.buffer))
+                    del infile
+                    with open(file_out, 'wb') as outfile:
+                        outfile.write(memoryview(self.buffer))
+                    del outfile
 
                 # Blit to the buffer to give a sense of progress
                 self.display.blit_buffer(self.buffer, 0, 0, self.buffer_width, self.buffer_height)
@@ -141,14 +149,33 @@ class PicoPin:
                     continue
 
                 path = _anim
+                has_zl = False
                 for _file in os.listdir(path):
-                    file = path + '/' + _file
-                    if file.endswith('.bin'):
-                        os.remove(file)
-                del file, _file
+                    if _file.endswith('.zl'):
+                        has_zl = True
+                        break
+                if has_zl:
+                    for _file in os.listdir(path):
+                        file = path + '/' + _file
+                        if file.endswith('.bin'):
+                            os.remove(file)
+                del file, _file, has_zl
 
             #print(f"Loading {anim}...")
             self.anim_files = self.prepare_dir(anim)
+            if len(self.anim_files) <= 0:
+                # Loading was paused
+                if self.prev_button.value() == 0:
+                    #print(f"Moving to previous animation!")
+                    loaded_no -= 1
+                    if loaded_no < 0:
+                        loaded_no = len(self.animations) - 1
+                elif self.next_button.value() == 0:
+                    #print(f"Moving to next animation!")
+                    loaded_no += 1
+                    if loaded_no >= len(self.animations):
+                        loaded_no = 0
+                continue
             with open(ll_path, 'w') as lfile:
                 lfile.write(anim)
             frame = 0
